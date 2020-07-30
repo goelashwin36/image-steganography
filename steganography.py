@@ -1,127 +1,138 @@
+# Python program implementing Image Steganography
+
+# PIL module is used to extract
+# pixels of image and modify it
 from PIL import Image
-import tkinter
-from tkinter import filedialog
-from tkfilebrowser import askopendirname, askopenfilename, asksaveasfilename
 
-def gendat(data):#convert data into binary data
+# Convert encoding data into 8-bit binary
+# form using ASCII value of characters
+def genData(data):
 
-        newd=[]
+        # list of binary codes
+        # of given data
+        newd = []
+
         for i in data:
-            newd.append(format(ord(i),'08b'))
+            newd.append(format(ord(i), '08b'))
         return newd
 
-def modpix(pix,data):#To return the modified pixels
+# Pixels are modified according to the
+# 8-bit binary data and finally returned
+def modPix(pix, data):
 
-    datalist=gendat(data)
-    lendata=len(datalist)
-    imdata=iter(pix)
+    datalist = genData(data)
+    lendata = len(datalist)
+    imdata = iter(pix)
 
     for i in range(lendata):
-        pix=[value for value in next(imdata)[:3] + next(imdata)[:3] + next(imdata)[:3]]
-#the value should be made odd for 1 and even for 0.
-        for j in range(0,8):
-            if (datalist[i][j]=='0') and (pix[j]%2!=0):
-                if (pix[j]%2!=0):
-                    pix[j]-=1
-            elif (datalist[i][j]=='1') and (pix[j]%2==0):
-                pix[j]-=1
-#0 means keep reading; 1 means the message is over.
-        if i==lendata-1:
-            if pix[-1]%2==0:
-                pix[-1]-=1
-        else:
-            if pix[-1]%2!=0:
-                pix[-1]-=1
 
-        pix=tuple(pix)
+        # Extracting 3 pixels at a time
+        pix = [value for value in imdata.__next__()[:3] +
+                                imdata.__next__()[:3] +
+                                imdata.__next__()[:3]]
+
+        # Pixel value should be made
+        # odd for 1 and even for 0
+        for j in range(0, 8):
+            if (datalist[i][j] == '0' and pix[j]% 2 != 0):
+                pix[j] -= 1
+
+            elif (datalist[i][j] == '1' and pix[j] % 2 == 0):
+                if(pix[j] != 0):
+                    pix[j] -= 1
+                else:
+                    pix[j] += 1
+                # pix[j] -= 1
+
+        # Eighth pixel of every set tells
+        # whether to stop ot read further.
+        # 0 means keep reading; 1 means thec
+        # message is over.
+        if (i == lendata - 1):
+            if (pix[-1] % 2 == 0):
+                if(pix[-1] != 0):
+                    pix[-1] -= 1
+                else:
+                    pix[-1] += 1
+
+        else:
+            if (pix[-1] % 2 != 0):
+                pix[-1] -= 1
+
+        pix = tuple(pix)
         yield pix[0:3]
         yield pix[3:6]
         yield pix[6:9]
 
-def encode_enc(data):
+def encode_enc(newimg, data):
+    w = newimg.size[0]
+    (x, y) = (0, 0)
 
-    s2=tkinter.Tk()
-    name=askopenfilename()
-    image=Image.open(name,'r')
-    global newimg
-    newimg=image.copy()
+    for pixel in modPix(newimg.getdata(), data):
 
- #   if len(data)==0:
- #       raise ValueError('Data is empty')
- #   elif 3*len(data) > newimg.getdata():
- #       raise ValueError('Data too large')
-    w=newimg.size[0]
-    (x,y)=(0,0)
-    for pixel in modpix(newimg.getdata(),data):
-        newimg.putpixel((x,y),pixel)  #To put modified pixels in the newimg
-        if x==w-1:
-            x=0
-            y+=1
+        # Putting modified pixels in the new image
+        newimg.putpixel((x, y), pixel)
+        if (x == w - 1):
+            x = 0
+            y += 1
         else:
-            x+=1
-    def call2():
-        directory=filedialog.askdirectory()
-        newimg.save(directory+'/newimg.png','PNG')
-        s2.destroy()
-        s3=tkinter.Tk()
-        label5=tkinter.Label(s3,text='Data Encoded',padx=10,pady=10)
-        label5.grid(row=0,column=1)
-        button4=tkinter.Button(s3,text='Quit',pady=10,padx=10,command=s3.destroy)
-        button4.grid(row=1,column=1,pady=10,padx=10)
-        s3.mainloop()
+            x += 1
 
-    button3=tkinter.Button(s2,text='Save as new file',pady=10,command=call2,padx=10)
-    button3.grid(row=0,column=1,pady=10,padx=10)
-    s2.mainloop()
+# Encode data into image
+def encode():
+    img = input("Enter image name(with extension) : ")
+    image = Image.open(img, 'r')
 
-def encode():#To encode the data
-    s.destroy()
-    s1=tkinter.Tk()
+    data = input("Enter data to be encoded : ")
+    if (len(data) == 0):
+        raise ValueError('Data is empty')
 
-    label2=tkinter.Label(s1,text='Steganography',padx=10,pady=10)
-    label2.grid(row=0,column=0)
-    global entry1
-    entry1=tkinter.Entry(s1)
-    entry1.grid(row=2,column=0,padx=10)
+    newimg = image.copy()
+    encode_enc(newimg, data)
 
-    def call():#To call encode_enc
-        data=entry1.get()
-        s1.destroy()
-        encode_enc(data)
-    button1=tkinter.Button(s1,text='Enter data',padx=5,pady=5,command=call)
-    button1.grid(row=2,column=1)
-    s1.mainloop()
+    new_img_name = input("Enter the name of new image(with extension) : ")
+    newimg.save(new_img_name, str(new_img_name.split(".")[1].upper()))
 
-def decode():#To decode the data in the image.
-    s.destroy()
-    s1=tkinter.Tk()
-    imname=str(askopenfilename())
-    image=Image.open(imname,'r')
-    data=''
-    imgdata=iter(image.getdata())
-    while True:
-        pixels=[value for value in next(imgdata)[:3] + next(imgdata)[:3] + next(imgdata)[:3]]#list of 3 pixels
-        binstr=''#string of binary data
+# Decode the data in the image
+def decode():
+    img = input("Enter image name(with extension) : ")
+    image = Image.open(img, 'r')
+
+    data = ''
+    imgdata = iter(image.getdata())
+
+    while (True):
+        pixels = [value for value in imgdata.__next__()[:3] +
+                                imgdata.__next__()[:3] +
+                                imgdata.__next__()[:3]]
+
+        # string of binary data
+        binstr = ''
+
         for i in pixels[:8]:
-            if i%2==0:
-                binstr+='0'
+            if (i % 2 == 0):
+                binstr += '0'
             else:
-                binstr+='1'
-        data+=chr(int(binstr,2))
-        if pixels[-1]%2!=0:
-            label2=tkinter.Label(s1,text='Secret code\n'+str(data),padx=20,pady=20)
-            label2.grid(row=0,column=1)
-            s1.mainloop()
+                binstr += '1'
 
-s=tkinter.Tk()
+        data += chr(int(binstr, 2))
+        if (pixels[-1] % 2 != 0):
+            return data
 
-label2=tkinter.Label(s,text='Steganography',pady=25)
-label2.grid(row=0,column=0)
+# Main Function
+def main():
+    a = int(input(":: Welcome to Steganography ::\n"
+                        "1. Encode\n2. Decode\n"))
+    if (a == 1):
+        encode()
 
-button2=tkinter.Button(s,text='Encode',command=encode,padx=5,pady=5)
-button2.grid(row=1,column=0,padx=25,pady=10)
+    elif (a == 2):
+        print("Decoded Word :  " + decode())
+    else:
+        raise Exception("Enter correct input")
 
-button2=tkinter.Button(s,text='Decode',command=decode,padx=5,pady=5)
-button2.grid(row=2,column=0,padx=25,pady=10)
-s.mainloop()
+# Driver Code
+if __name__ == '__main__' :
 
+    # Calling main function
+    main()
